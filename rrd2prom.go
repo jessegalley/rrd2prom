@@ -52,28 +52,6 @@ func NewRRDFile (fileLocation, name string) (*RRDFile, error) {
   }
 
   return &rrdFile, nil
-  // rrdFile := RRDFile{
-  //   Location: fileLocation,
-  //   Name: name,
-  //   DataSources: make(map[string]RRDDataSource),
-  // }
-  //
-  // // read from either http or file 
-  // if isURL(fileLocation){
-  //   // get from http
-  //   err := rrdFile.ReadRRDFromUrl(fileLocation)
-  //   if err != nil {
-  //     return &rrdFile, err
-  //   }
-  // } else {
-  //   // assume local file path 
-  //   err := rrdFile.ReadRRDFromFile(fileLocation)
-  //   if err != nil {
-  //     return &rrdFile, err
-  //   }
-  // }
-  // 
-  // return &rrdFile, nil
 }
 
 // getRRDInfo abstracts the common logic for getting RRD info from either
@@ -152,36 +130,6 @@ func (r *RRDFile) Update() error {
     return nil
 }
 
-// // ReadRRDFromFile attempts to read a local .rrd file.
-// func (r *RRDFile) ReadRRDFromFile(path string) error {
-//   // get the RRD file info
-//   info, err := rrd.Info(path)
-//   if err != nil {
-//     return fmt.Errorf("couldn't open rrd file at: %s (%v)", path, err)
-//   }
-//
-//   // parse the last_update field
-//   err = r.parseLastUpdate(info)
-//   if err != nil {
-//     return err
-//   }
-//
-//   // parse the step field 
-//   err = r.parseStep(info)
-//   if err != nil {
-//     return err 
-//   }
-//   
-//   // parse the datsources 
-//   err = r.parseDS(info)
-//   if err != nil {
-//     return err 
-//   }
-//
-//   // spew.Dump(info)
-//   return nil 
-// }
-
 // readRRD attempts to read and parse an RRD file from either a local path or URL
 func (r *RRDFile) readRRD() error {
     info, err := r.getRRDInfo()
@@ -205,46 +153,7 @@ func (r *RRDFile) readRRD() error {
     return nil
 }
 
-// // ReadRRDFeomUrl attempts to get a remote .rrd file from url, saving
-// // it to a temp file which can then be read from via the file parsing
-// // methods.
-// func (r *RRDFile) ReadRRDFromUrl(urlStr string) error {
-//     // create temp file to store downloaded RRD
-//     tmpFile, err := os.CreateTemp("", "rrd-*")
-//     if err != nil {
-//         return fmt.Errorf("failed to create temp file: %v", err)
-//     }
-//     defer os.Remove(tmpFile.Name())
-//     defer tmpFile.Close()
-//
-//     // download file
-//     // resp, err := http.Get(urlStr)
-//     // if err != nil {
-//     //     return fmt.Errorf("failed to download RRD: %v", err)
-//     // }
-//     // defer resp.Body.Close()
-//
-//     //TODO: toggle insecure transport functionality with -K 
-//     // create insecure transport
-//     tr := &http.Transport{
-//         TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-//     }
-//     client := &http.Client{Transport: tr}
-//
-//     // Download file using custom client
-//     resp, err := client.Get(urlStr)
-//     if resp.StatusCode != http.StatusOK {
-//         return fmt.Errorf("bad status: %s", resp.Status)
-//     }
-//
-//     // copy to temp file
-//     if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-//         return fmt.Errorf("failed to save RRD: %v", err)
-//     }
-//
-//     // parse the downloaded file via the existing code 
-//     return r.ReadRRDFromFile(tmpFile.Name())
-// }
+
 
 func (r *RRDFile) parseDS(info map[string]interface{}) error {
   // dump structure of fields with which we are concerned:
@@ -338,14 +247,6 @@ func (r *RRDFile) parseDS(info map[string]interface{}) error {
     }
     r.DataSources[k] = ds
   }
-  //
-  // for k, v := range typesMap {
-  //   r.DataSources[k].Type = v
-  // }
-  //
-  // for k, v := range lastMap {
-  //   r.DataSources[k].LastValue = uint64(v)
-  // }
 
   // spew.Dump(typesMap)
   // spew.Dump(indexMap)
@@ -400,114 +301,3 @@ func isURL(str string) bool {
     u, err := url.Parse(str)
     return err == nil && (u.Scheme == "http" || u.Scheme == "https")
 }
-
-// func getDSTypes(filename string) {
-//   info, err := rrd.Info(filename)
-//   if err != nil {
-//     fmt.Println("couldn't get rrd info")
-//     os.Exit(1)
-//   }
-//
-//   dsTypes, ok := info["ds.type"].(map[string]interface{})
-//   if !ok {
-//     fmt.Println("couldn't parse ds types with assertion")
-//     os.Exit(2)
-//   }
-//
-//   for dsName, dsType := range  dsTypes {
-//     fmt.Println(dsName, dsType)
-//   }
-// }
-//
-// func getLastUpdate(filename string) time.Time {
-//   info, err := rrd.Info(filename)
-//   if err != nil {
-//     fmt.Println("couldn't get rrd info")
-//     os.Exit(1)
-//   }
-//
-//   //  (string) (len=11) "last_update": (uint) 1735589344,
-//   lastUpdateVal, ok := info["last_update"].(uint)
-//   if !ok {
-//     fmt.Println("couldn't parse last update with type assertion")
-//     os.Exit(3)
-//   }
-//
-//   // lastUpdateUint := info["last_update"].(uint)
-//   // Explicit conversion to int64, checking for overflow if needed
-//   lastUpdateInt := int64(lastUpdateVal)
-//   lastUpdate := time.Unix(lastUpdateInt, 0)
-//
-//   // spew.Dump(info)
-//   return lastUpdate
-// }
-//
-// func main() {
-//   // spew.Dump(nil)
-//   // Open the RRD file
-//   const filename = "./testdata/port1.rrd"
-//
-//   getDSTypes(filename)
-//   lastUpdate := getLastUpdate(filename)
-//
-//   fmt.Println("last_update: ", lastUpdate)
-//
-//   // Specify the time range you want to fetch
-//   // end := time.Now()
-//   // lastMinute := lastUpdate.Truncate(time.Minute)
-//   // if lastUpdate.Sub(lastMinute) > 0 {
-//   //   // the last update minus the last update minute has some seconds leftover
-//   //   // this means that the last full elapsed minute might not contain data 
-//   //   // inside the rrd file, so we'll move the pointer back one minute 
-//   //   // to make sure we get valid data 
-//   //   lastMinute = lastMinute.Add(1 * -time.Minute)
-//   // }
-//   // end := lastMinute
-//   end := lastUpdate
-//   start := end.Add(-5 * time.Minute) // last 5  minutes in the file 
-//
-//   // Fetch data from RRD
-//   data, err := rrd.Fetch(filename, "AVERAGE", start, end, time.Minute)
-//   if err != nil {
-//     panic(err)
-//   }
-//   defer data.FreeValues()
-//
-//   // Print some metadata about the fetch
-//   fmt.Printf("Data sources: %v\n", data.DsNames)
-//   fmt.Printf("Step: %v\n", data.Step)
-//   fmt.Printf("Start: %v\n", data.Start)
-//   fmt.Printf("End: %v\n", data.End)
-//   // spew.Dump(data.Values())
-//
-//   fmt.Printf("Last Update: %v\n", lastUpdate)
-//   // fmt.Printf("Last Update Minute: %v\n", lastMinute)
-//   // fmt.Printf("End: %v\n", end)
-//   // fmt.Printf("Start: %v\n", start)
-//   values := data.Values()
-//   for i := 0; i < len(values); i += 2 {
-//     if i+1 >= len(values) {
-//       break
-//     }
-//     timestamp := data.Start.Add(time.Duration(i/2) * data.Step)
-//     if timestamp.After(end) {
-//       break
-//     }
-//     if !math.IsNaN(values[i]) && !math.IsNaN(values[i+1]) {
-//       fmt.Printf("Time: %v\n  traffic_in: %f\n  traffic_out: %f\n", 
-//       timestamp, values[i], values[i+1])
-//     }
-//   }
-//   // for i, v := range data.Values() {
-//   //   spew.Dump(v)
-//   //   fmt.Printf("%d:\t%f\n", i, v)
-//   // }
-//
-//   _, err = rrd.Info(filename)
-//   if err != nil {
-//     fmt.Println("couldn't get rrd info")
-//     os.Exit(1)
-//   }
-//   // spew.Dump(info["ds.last_ds"])
-// }
-//

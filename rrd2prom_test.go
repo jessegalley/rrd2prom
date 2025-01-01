@@ -24,7 +24,6 @@ func setupTestFixture(t *testing.T) *testFixture {
         rrdPath: "testdata/port1.rrd",
     }
 
-    // Setup HTTP server
     fixture.httpServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         data, err := os.ReadFile(fixture.rrdPath)
         require.NoError(t, err)
@@ -38,42 +37,22 @@ func setupTestFixture(t *testing.T) *testFixture {
     return fixture
 }
 
-// func TestRRDFile(t *testing.T) {
-//     tests := []struct {
-//         name     string
-//         fn       func(*testing.T, *testFixture)
-//     }{
-//         {"OpenLocalFile", testOpenLocalFile},
-//         {"OpenHttpFile", testOpenHttpFile},
-//         {"ParseLastUpdate", testParseLastUpdate},
-//         {"ParseStepInterval", testParseStepInterval},
-//         {"ParseDS", testParseDS},
-//     }
-//
-//     for _, tt := range tests {
-//         t.Run(tt.name, func(t *testing.T) {
-//             fixture := setupTestFixture(t)
-//             tt.fn(t, fixture)
-//         })
-//     }
-// }
-
 func TestRRDFile(t *testing.T) {
     tests := []struct {
         name     string
-        location string  // Add this to specify whether to use URL or file path
-        rrdName  string  // Add this to test the name field
-        fn       func(*testing.T, *testFixture, string, string)  // Modified signature
+        location string  // specify whether to use URL or file path
+        rrdName  string  // test the name field
+        fn       func(*testing.T, *testFixture, string, string) 
     }{
         {
             name:     "OpenLocalFile",
-            location: "testdata/port1.rrd",  // Use file path
+            location: "testdata/port1.rrd",  // file path
             rrdName:  "port1",
             fn:       testOpenRRD,
         },
         {
             name:     "OpenHttpFile",
-            location: "",  // Will be set to httpServer.URL in the test
+            location: "",  // httpServer.URL in the test
             rrdName:  "port2",
             fn:       testOpenRRD,
         },
@@ -109,25 +88,12 @@ func TestRRDFile(t *testing.T) {
     }
 }
 
-// Combine testOpenLocalFile and testOpenHttpFile into one function
 func testOpenRRD(t *testing.T, f *testFixture, location string, name string) {
     rrdFile, err := rrd2prom.NewRRDFile(location, name)
     require.NoError(t, err)
     assert.Equal(t, location, rrdFile.Location)
     assert.Equal(t, name, rrdFile.Name)
 }
-
-// func testOpenLocalFile(t *testing.T, f *testFixture) {
-//     rrdFile, err := rrd2prom.NewRRDFile(f.rrdPath, "port1")
-//     require.NoError(t, err)
-//     assert.Equal(t, f.rrdPath, rrdFile.Location)
-// }
-//
-// func testOpenHttpFile(t *testing.T, f *testFixture) {
-//     rrdFile, err := rrd2prom.NewRRDFile(f.httpServer.URL, "port2")
-//     require.NoError(t, err)
-//     assert.Equal(t, "port2", rrdFile.Name)
-// }
 
 func testParseLastUpdate(t *testing.T, f *testFixture, location string, name string) {
     rrdFile, err := rrd2prom.NewRRDFile(location, name)
@@ -136,13 +102,6 @@ func testParseLastUpdate(t *testing.T, f *testFixture, location string, name str
     expected := time.Unix(int64(1735589344), 0)
     assert.Equal(t, expected, rrdFile.LastUpdate)
 }
-// func testParseLastUpdate(t *testing.T, f *testFixture) {
-//     rrdFile, err := rrd2prom.NewRRDFile(f.rrdPath, "port1")
-//     require.NoError(t, err)
-//     
-//     expected := time.Unix(int64(1735589344), 0)
-//     assert.Equal(t, expected, rrdFile.LastUpdate)
-// }
 
 func testParseStepInterval(t *testing.T, f *testFixture, location string, name string) {
     rrdFile, err := rrd2prom.NewRRDFile(location, name)
@@ -151,13 +110,7 @@ func testParseStepInterval(t *testing.T, f *testFixture, location string, name s
     expected := 60 * time.Second
     assert.Equal(t, expected, rrdFile.Interval)
 }
-// func testParseStepInterval(t *testing.T, f *testFixture) {
-//     rrdFile, err := rrd2prom.NewRRDFile(f.rrdPath, "port1")
-//     require.NoError(t, err)
-//     
-//     expected := 60 * time.Second
-//     assert.Equal(t, expected, rrdFile.Interval)
-// }
+
 func testParseDS(t *testing.T, f *testFixture, location string, name string) {
     rrdFile, err := rrd2prom.NewRRDFile(location, name)
     require.NoError(t, err)
@@ -166,14 +119,6 @@ func testParseDS(t *testing.T, f *testFixture, location string, name string) {
     assert.Contains(t, rrdFile.DataSources, "traffic_in")
     assert.Contains(t, rrdFile.DataSources, "traffic_out")
 }
-// func testParseDS(t *testing.T, f *testFixture) {
-//     rrdFile, err := rrd2prom.NewRRDFile(f.rrdPath, "port1")
-//     require.NoError(t, err)
-//     
-//     assert.NotEmpty(t, rrdFile.DataSources)
-//     assert.Contains(t, rrdFile.DataSources, "traffic_in")
-//     assert.Contains(t, rrdFile.DataSources, "traffic_out")
-// }
 
 func TestRRDFile_Update(t *testing.T) {
     tests := []struct {
