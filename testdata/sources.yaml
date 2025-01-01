@@ -1,0 +1,4 @@
+sources:
+ - location: "testdata/port1.rrd"
+   name: "eth1/24"  # Optional, will use filename if omitted
+   interval: 60     # Optional, defaults to global interval
